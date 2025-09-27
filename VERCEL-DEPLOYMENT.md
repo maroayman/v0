@@ -25,12 +25,12 @@
    - Select the `main` branch
 
 2. **Configure Build Settings**
-   ```
+   \`\`\`
    Framework Preset: Next.js
    Build Command: npm run build
    Output Directory: .next (auto-detected)
    Install Command: npm install --legacy-peer-deps
-   ```
+   \`\`\`
 
 3. **Deploy**
    - Click "Deploy"
@@ -72,10 +72,10 @@ Once connected, your portfolio will:
 ## 🔧 Troubleshooting
 
 ### If Build Fails:
-```bash
+\`\`\`bash
 # Vercel should use this install command:
 npm install --legacy-peer-deps
-```
+\`\`\`
 
 ### If Articles Don't Load:
 - Check that API routes are working: `/api/hashnode`

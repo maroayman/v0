@@ -12,7 +12,7 @@
 ## 🔧 To Enable Development Mode
 
 ### Option 1: Quick Toggle (config/portfolio.ts)
-```typescript
+\`\`\`typescript
 // Change this line in config/portfolio.ts:
 export const currentConfig = environments.development // 🔧 DEVELOPMENT
 
@@ -22,10 +22,10 @@ export const currentConfig = environments.development // 🔧 DEVELOPMENT
 // - API Response tab
 // - Auto-refresh toggle
 // - Next refresh timer
-```
+\`\`\`
 
 ### Option 2: Custom Settings (config/portfolio.ts)
-```typescript
+\`\`\`typescript
 export const currentConfig = {
   showDebugControls: true,     // Show API buttons
   refreshIntervalMinutes: 5,   // Refresh every 5 minutes
@@ -35,7 +35,7 @@ export const currentConfig = {
   showRefreshTimer: true,      // Show countdown timer
   showAutoRefreshToggle: true, // Show on/off toggle
 }
-```
+\`\`\`
 
 ## 📚 Auto-Update Features
 

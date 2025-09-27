@@ -36,7 +36,7 @@ A modern, responsive portfolio website built with Next.js 15, featuring live Has
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/maroayman/maroayman)
 
 ### Option 3: CLI Deployment
-```bash
+\`\`\`bash
 # Install Vercel CLI
 npm i -g vercel
 
@@ -45,7 +45,7 @@ git clone https://github.com/maroayman/maroayman.git
 cd maroayman
 npm install --legacy-peer-deps
 vercel --prod
-```
+\`\`\`
 
 ## 🔧 Configuration
 
@@ -61,7 +61,7 @@ To customize for your own portfolio:
 
 ## 📂 Project Structure
 
-```
+\`\`\`
 ├── app/                    # Next.js App Router
 │   ├── api/hashnode/      # API routes for blog data
 │   ├── articles/          # Articles page with filtering
@@ -73,7 +73,7 @@ To customize for your own portfolio:
 ├── lib/                  # Utilities and APIs
 ├── public/               # Static assets
 └── config/               # Configuration files
-```
+\`\`\`
 
 ## 🌐 Live Demo
 
@@ -81,7 +81,7 @@ Visit the live demo: **[Your Vercel URL]**
 
 ## 🛠️ Development
 
-```bash
+\`\`\`bash
 # Install dependencies
 npm install --legacy-peer-deps
 
@@ -93,7 +93,7 @@ npm run build
 
 # Start production server
 npm start
-```
+\`\`\`
 
 ## ✨ Features Included
 

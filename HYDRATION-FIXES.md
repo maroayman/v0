@@ -21,48 +21,48 @@
 ## 🛠️ Changes Made
 
 ### State Management
-```tsx
+\`\`\`tsx
 const [isClient, setIsClient] = useState(false)
 
 useEffect(() => {
   setIsClient(true)
 }, [])
-```
+\`\`\`
 
 ### ID Generation Fix
-```tsx
+\`\`\`tsx
 // Before (non-deterministic)
 id: Date.now() + Math.random()
 
 // After (deterministic)
 id: `series-${s.slug}-${index}`
-```
+\`\`\`
 
 ### Time Display Fix
-```tsx
+\`\`\`tsx
 // Before (hydration mismatch)
 {lastSync && <p>Last updated: {new Date(lastSync).toLocaleString()}</p>}
 
 // After (client-side only)
 {isClient && lastSync && <p>Last updated: {new Date(lastSync).toLocaleString()}</p>}
-```
+\`\`\`
 
 ### Conditional Rendering Fix
-```tsx
+\`\`\`tsx
 // Before (potential hydration mismatch)
 {showDevControls && <DebugComponent />}
 
 // After (client-side check)
 {isClient && showDevControls && <DebugComponent />}
-```
+\`\`\`
 
 ### Auto-Refresh Fix
-```tsx
+\`\`\`tsx
 useEffect(() => {
   if (!isClient) return // Only run on client side
   // ... rest of the effect
 }, [autoRefreshEnabled, isClient])
-```
+\`\`\`
 
 ## ✅ Verification
 
@@ -87,10 +87,10 @@ useEffect(() => {
 ## 📝 Additional Component
 
 Created `components/client-only.tsx` for future use:
-```tsx
+\`\`\`tsx
 <ClientOnly fallback={<Skeleton />}>
   <TimeStampComponent />
 </ClientOnly>
-```
+\`\`\`
 
 This utility component can be used for any content that should only render on the client side.

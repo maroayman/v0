@@ -17,7 +17,7 @@ When I’m not coding, you’ll find me:
 Want to connect? Let’s make magic happen! 🌈---
 
 ## My Skills 🚀
-```diff
+\`\`\`diff
 + Programming Languages: C, Python, Java, Go
 + Tools: Docker, Kubernetes , Terraform , Ansible , Jenkins
 + Operating Systems : Windows , Linux
