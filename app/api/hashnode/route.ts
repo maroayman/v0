@@ -1,360 +1,121 @@
-import { NextRequest, NextResponse } from 'next/server'
+// API route for fetching Hashnode articles
+import { fetchHashnodeArticles, fetchHashnodeSeries } from '../../../lib/hashnode'
 
-// Enhanced series fetching function with correct GraphQL schema
-async function getHashnodeSeries(username: string) {
-  const query = `
-    query GetUserSeries($username: String!) {
-      user(username: $username) {
-        seriesList(first: 50) {
-          edges {
-            node {
-              id
-              name
-              slug
-              description {
-                text
-              }
-              posts(first: 1) {
-                totalDocuments
-              }
-              createdAt
-              updatedAt
-            }
-          }
-        }
-      }
-    }
-  `
-
+export async function GET(request: Request) {
   try {
-    console.log(`🔄 Fetching series for ${username} from Hashnode GraphQL API...`)
+    const url = new URL(request.url)
+    const username = url.searchParams.get('username') || 'maroayman'
+    const page = parseInt(url.searchParams.get('page') || '1')
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '20')
+    const includeSeries = url.searchParams.get('includeSeries') === 'true'
+
+    // Fetch articles
+    const articlesData = await fetchHashnodeArticles(username, page, pageSize)
     
-    const response = await fetch('https://gql.hashnode.com/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-      },
-      body: JSON.stringify({
-        query,
-        variables: { username }
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const result = await response.json()
-    console.log('📊 Raw Hashnode series response:', JSON.stringify(result, null, 2))
-
-    if (result.errors) {
-      console.error('GraphQL errors:', result.errors)
-      throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`)
-    }
-
-    const seriesEdges = result.data?.user?.seriesList?.edges || []
-    
-    const series = seriesEdges.map((edge: any) => ({
-      id: edge.node.id,
-      name: edge.node.name,
-      slug: edge.node.slug,
-      description: edge.node.description,
-      posts: {
-        totalDocuments: edge.node.posts.totalDocuments
-      },
-      createdAt: edge.node.createdAt,
-      updatedAt: edge.node.updatedAt
-    }))
-
-    // Sort by most recently updated first
-    series.sort((a, b) => {
-      const dateA = new Date(b.updatedAt || b.createdAt).getTime()
-      const dateB = new Date(a.updatedAt || a.createdAt).getTime() 
-      return dateA - dateB
-    })
-
-    console.log(`✅ Successfully processed ${series.length} series for ${username}:`)
-    series.forEach((s, index) => {
-      console.log(`   ${index + 1}. "${s.name}" (slug: "${s.slug}", articles: ${s.posts.totalDocuments})`)
-    })
-    
-    return series
-
-  } catch (error) {
-    console.error('❌ Error fetching series from Hashnode:', error)
-    throw error
-  }
-}
-
-// FIXED: Enhanced articles fetching function with correct Hashnode GraphQL schema
-async function getHashnodeArticles(username: string, page: number = 1, pageSize: number = 50) {
-  // 🔧 FIXED: Use correct Hashnode GraphQL schema
-  const query = `
-    query GetUserPosts($username: String!, $page: Int!, $pageSize: Int!) {
-      user(username: $username) {
-        posts(pageSize: $pageSize, page: $page) {
-          totalDocuments
-          pageInfo {
-            hasNextPage
-            hasPreviousPage
-          }
-          edges {
-            node {
-              id
-              title
-              brief
-              slug
-              url
-              publishedAt
-              readTimeInMinutes
-              coverImage {
-                url
-              }
-              tags {
-                id
-                name
-                slug
-              }
-              series {
-                id
-                name
-                slug
-              }
-            }
-          }
-        }
-      }
-    }
-  `
-
-  try {
-    console.log(`🔄 Fetching articles for ${username} with page=${page}, pageSize=${pageSize}`)
-    
-    const response = await fetch('https://gql.hashnode.com/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-      },
-      body: JSON.stringify({
-        query,
-        variables: { username, page, pageSize }
-      }),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Hashnode API HTTP error:', response.status, errorText)
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const result = await response.json()
-    console.log('📊 Raw Hashnode articles response:', JSON.stringify(result, null, 2))
-
-    if (result.errors) {
-      console.error('❌ GraphQL errors:', result.errors)
-      throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`)
-    }
-
-    const postsData = result.data?.user?.posts
-    const articles = postsData?.edges?.map((edge: any) => edge.node) || []
-
-    console.log(`✅ Successfully fetched ${articles.length} articles for ${username}`)
-
-    return {
-      articles,
-      pagination: {
-        total: postsData?.totalDocuments || 0,
-        page,
-        pageSize,
-        hasNextPage: postsData?.pageInfo?.hasNextPage || false,
-        hasPreviousPage: postsData?.pageInfo?.hasPreviousPage || false,
-      }
-    }
-
-  } catch (error) {
-    console.error('❌ Error fetching articles from Hashnode:', error)
-    throw error
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const username = searchParams.get('username') || 'maroayman'
-    const page = parseInt(searchParams.get('page') || '1')
-    const pageSize = parseInt(searchParams.get('pageSize') || '20') // Reduced pageSize for reliability
-    const includeSeries = searchParams.get('includeSeries') === 'true'
-    const timestamp = searchParams.get('t') || Date.now().toString()
-
-    console.log(`🔄 [${new Date().toISOString()}] FIXED: Fetching data for ${username}`)
-    console.log(`📊 Parameters: page=${page}, size=${pageSize}, series=${includeSeries}, cache-bust=${timestamp}`)
-
-    // Fetch articles with fixed GraphQL schema
-    let articlesData
-    try {
-      articlesData = await getHashnodeArticles(username, page, pageSize)
-      console.log(`✅ Articles fetched successfully: ${articlesData.articles.length} articles`)
-    } catch (articlesError) {
-      console.error('❌ Failed to fetch articles:', articlesError)
-      // Return partial success with empty articles
-      articlesData = {
-        articles: [],
-        pagination: { total: 0, page, pageSize, hasNextPage: false, hasPreviousPage: false }
-      }
-    }
-
-    let seriesData = []
-    
-    // Fetch series if requested (with error handling)
+    let seriesData: any[] = []
     if (includeSeries) {
-      try {
-        console.log('🔄 Fetching series data from Hashnode...')
-        seriesData = await getHashnodeSeries(username)
-        console.log(`✅ Successfully fetched ${seriesData.length} series:`)
-        seriesData.forEach((series, index) => {
-          console.log(`   ${index + 1}. "${series.name}" (${series.posts.totalDocuments} articles) - Slug: "${series.slug}"`)
-        })
-      } catch (seriesError) {
-        console.error('❌ Failed to fetch series (continuing without series):', seriesError)
-        // Continue without series rather than failing entirely
-      }
+      seriesData = await fetchHashnodeSeries(username)
     }
 
     const response = {
       success: true,
       data: {
         articles: articlesData.articles,
+        totalCount: articlesData.totalCount,
         series: seriesData,
-        pagination: articlesData.pagination,
-        metadata: {
-          username,
-          page,
-          pageSize,
-          includeSeries,
-          articlesCount: articlesData.articles.length,
-          seriesCount: seriesData.length,
-          timestamp: new Date().toISOString(),
-          cacheBust: timestamp,
-          fetchedAt: new Date().toISOString(),
-          apiVersion: 'v2-fixed'
-        }
+        page,
+        pageSize,
+        hasNextPage: page * pageSize < articlesData.totalCount,
+        hasPreviousPage: page > 1,
       },
-      timestamp: new Date().toISOString()
+      metadata: {
+        timestamp: new Date().toISOString(),
+        username,
+        source: 'hashnode',
+        autoRefresh: 'enabled'
+      }
     }
 
-    console.log(`✅ FIXED API Response ready: ${articlesData.articles.length} articles, ${seriesData.length} series`)
-
-    return NextResponse.json(response, {
+    return new Response(JSON.stringify(response), {
+      status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Timestamp': new Date().toISOString(),
-        'X-Cache-Bust': timestamp,
-        'X-Series-Count': seriesData.length.toString(),
+        // Cache for 2 minutes to balance freshness with performance
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=1800',
+        'X-Generated-At': new Date().toISOString(),
         'X-Articles-Count': articlesData.articles.length.toString(),
-        'X-API-Version': 'v2-fixed',
       },
     })
-
   } catch (error) {
-    console.error('❌ FIXED API Error:', error)
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: { articles: [], series: [] },
-        timestamp: new Date().toISOString(),
-        apiVersion: 'v2-fixed'
-      },
+    console.error('Error fetching Hashnode data:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'Failed to fetch articles from Hashnode',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { 
         status: 500,
         headers: {
-          'Cache-Control': 'no-cache',
-          'X-Error': 'true',
-          'X-API-Version': 'v2-fixed',
+          'Content-Type': 'application/json',
         },
       }
     )
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { username = 'maroayman', page = 1, pageSize = 20, includeSeries = true } = body
 
-    console.log(`🔄 POST: FIXED - Fetching data for ${username}`)
-
-    // Fetch articles with error handling
-    let articlesData
-    try {
-      articlesData = await getHashnodeArticles(username, page, pageSize)
-    } catch (articlesError) {
-      console.error('❌ POST: Failed to fetch articles:', articlesError)
-      articlesData = {
-        articles: [],
-        pagination: { total: 0, page, pageSize, hasNextPage: false, hasPreviousPage: false }
-      }
-    }
-
-    let seriesData = []
+    // Fetch articles
+    const articlesData = await fetchHashnodeArticles(username, page, pageSize)
     
-    // Fetch series if requested
+    let seriesData: any[] = []
     if (includeSeries) {
-      try {
-        console.log('🔄 POST: Fetching series data...')
-        seriesData = await getHashnodeSeries(username)
-        console.log(`✅ POST: Successfully fetched ${seriesData.length} series`)
-      } catch (seriesError) {
-        console.error('❌ POST: Failed to fetch series:', seriesError)
-      }
+      seriesData = await fetchHashnodeSeries(username)
     }
 
     const response = {
       success: true,
       data: {
         articles: articlesData.articles,
+        totalCount: articlesData.totalCount,
         series: seriesData,
-        pagination: articlesData.pagination,
-        metadata: {
-          username,
-          page,
-          pageSize,
-          includeSeries,
-          articlesCount: articlesData.articles.length,
-          seriesCount: seriesData.length,
-          timestamp: new Date().toISOString(),
-          apiVersion: 'v2-fixed'
-        }
+        page,
+        pageSize,
+        hasNextPage: page * pageSize < articlesData.totalCount,
+        hasPreviousPage: page > 1,
       },
-      timestamp: new Date().toISOString()
+      metadata: {
+        timestamp: new Date().toISOString(),
+        username,
+        source: 'hashnode',
+        requestType: 'POST'
+      }
     }
 
-    return NextResponse.json(response, {
+    return new Response(JSON.stringify(response), {
+      status: 200,
       headers: {
-        'Cache-Control': 'no-cache',
-        'X-API-Version': 'v2-fixed',
+        'Content-Type': 'application/json',
       },
     })
-
   } catch (error) {
-    console.error('❌ POST FIXED API Error:', error)
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: { articles: [], series: [] },
-        timestamp: new Date().toISOString(),
-        apiVersion: 'v2-fixed'
-      },
-      { status: 500 }
+    console.error('Error fetching Hashnode data:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'Failed to fetch articles from Hashnode',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     )
   }
 }

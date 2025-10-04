@@ -1,745 +1,723 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
-import { X, Search, Filter, RefreshCw, AlertCircle, Zap } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import Link from "next/link"
+import { formatDate, formatReadTime } from "@/lib/hashnode"
+import { currentConfig } from "@/config/portfolio"
+import { ExternalLink, Calendar, Clock, Search, BookOpen, Hash, Loader2, RefreshCw, Code, Database, Filter, X, ChevronDown } from "lucide-react"
 
-// Replace CONFIG with direct environment check
-const isProduction = process.env.NODE_ENV === 'production'
-
-// Fixed interfaces to match Hashnode API
-interface HashnodeArticle {
+interface Article {
   id: string
   title: string
-  brief: string
+  brief: string | null
   slug: string
+  published_at: string
+  read_time_minutes: number | null
+  cover_image_url: string | null
   url: string
-  publishedAt: string
-  readTimeInMinutes: number
-  coverImage?: {
-    url: string
-  }
-  tags: Array<{
-    id: string
-    name: string
-    slug: string
-  }>
-  series?: {
-    id: string
-    name: string
-    slug: string
-  }
+  series_name: string | null
+  series_slug: string | null
+  tags: Array<{ name: string; slug: string }>
 }
 
-interface HashnodeSeries {
-  id: string
+interface Series {
+  id: number
   name: string
   slug: string
-  description?: {
-    text: string
-  }
-  posts: {
-    totalDocuments: number
-  }
-  createdAt?: string
-  updatedAt?: string
+  description: string | null
+  total_posts: number
 }
 
 export default function ArticlesPage() {
-  // 🔧 HYDRATION FIX: Prevent hydration mismatches
-  const [mounted, setMounted] = useState(false)
-  const [articles, setArticles] = useState<HashnodeArticle[]>([])
-  const [series, setSeries] = useState<HashnodeSeries[]>([])
-  const [filteredArticles, setFilteredArticles] = useState<HashnodeArticle[]>([])
+  const [articles, setArticles] = useState<Article[]>([])
+  const [series, setSeries] = useState<Series[]>([])
+  const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedSeries, setSelectedSeries] = useState<string>("")
-  const [tagSearch, setTagSearch] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
-  const [lastSync, setLastSync] = useState<string>("")
+  const [tagSearchTerm, setTagSearchTerm] = useState("")
+  const [selectedSeries, setSelectedSeries] = useState<string | null>(null)
+  const [lastSync, setLastSync] = useState<string | null>(null)
+  
+  // API Response state
   const [apiResponse, setApiResponse] = useState<any>(null)
-  const [apiError, setApiError] = useState<string>("")
-  const [nextRefresh, setNextRefresh] = useState<number>(0)
+  const [apiLoading, setApiLoading] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
+  
+  // Auto-refresh status
+  const [nextRefreshTime, setNextRefreshTime] = useState<Date | null>(null)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
-  const [requestId, setRequestId] = useState<string>("")
+  const [isClient, setIsClient] = useState(false)
+  
+  // Get configuration settings
+  const showDevControls = currentConfig.showDebugControls
+  const refreshInterval = currentConfig.refreshIntervalMinutes * 60 * 1000
+  const showRefreshTimer = currentConfig.showRefreshTimer
+  const showAutoRefreshToggle = currentConfig.showAutoRefreshToggle
 
-  // 🔧 HYDRATION FIX: Only run client-side code after mounting
+  // Handle client-side mounting
   useEffect(() => {
-    setMounted(true)
-    loadArticlesData()
-    
-    // Auto-refresh setup only after mounting - more frequent for fresh data
-    const interval = setInterval(() => {
-      if (autoRefreshEnabled) {
-        console.log("🔄 Auto-refresh triggered - forcing fresh data with cache-bust")
-        loadArticlesData()
-      }
-    }, 5 * 60 * 1000) // 5 minutes instead of 10
+    setIsClient(true)
+  }, [])
 
-    // Countdown timer
-    const countdownInterval = setInterval(() => {
-      setNextRefresh(prev => prev > 0 ? prev - 1 : 300) // Reset to 5 minutes
-    }, 1000)
-
-    // Page visibility API for auto-refresh
-    const handleVisibilityChange = () => {
-      if (!document.hidden && autoRefreshEnabled) {
-        console.log("🔄 Page became visible, forcing fresh data")
-        loadArticlesData()
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      clearInterval(interval)
-      clearInterval(countdownInterval)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [autoRefreshEnabled])
-
-  // 🔥 AGGRESSIVE CACHE-BUSTING: Combined function to load both articles and series from API
+  // Function to load articles data
+  // This automatically fetches both articles AND series from Hashnode
+  // New series you create will appear automatically within 10 minutes
   const loadArticlesData = async () => {
+    setLoading(true)
     try {
-      setIsLoading(true)
-      setApiError("")
-      
-      // 🔥 MULTIPLE CACHE-BUSTING STRATEGIES
-      const timestamp = Date.now()
-      const randomId = Math.random().toString(36).substr(2, 9)
-      const sessionId = Math.random().toString(36).substr(2, 15)
-      const requestTimestamp = new Date().toISOString()
-      
-      // 🔥 AGGRESSIVE URL with multiple cache-busting parameters
-      const url = `/api/hashnode?` + new URLSearchParams({
-        t: timestamp.toString(),
-        includeSeries: 'true',
-        pageSize: '50',
-        username: 'maroayman',
-        _cacheBust: randomId,
-        _sessionId: sessionId,
-        _timestamp: requestTimestamp,
-        _random: Math.random().toString(),
-        _force: 'true'
-      }).toString()
-      
-      console.log("🔥 AGGRESSIVE CACHE-BUST: Fetching FRESH data from:", url)
-      
-      const response = await fetch(url, {
-        method: 'GET',
+      // Always fetch fresh data from Hashnode API (includes series)
+      const hashnodeResponse = await fetch(`/api/hashnode?username=${currentConfig.hashnodeUsername}&includeSeries=${currentConfig.includeSeriesData}&pageSize=${currentConfig.maxArticlesPerPage}`, {
+        // Add cache busting to ensure fresh data
         headers: {
-          // 🔥 AGGRESSIVE CACHE-BUSTING HEADERS
-          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-Cache-Bust': randomId,
-          'X-Timestamp': timestamp.toString(),
-          'X-Session-ID': sessionId,
-          'X-Force-Fresh': 'true',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       })
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      console.log("🔥 CACHE-BUSTED API Response received:", data)
-      
-      if (data.success && data.data) {
-        // Set articles
-        const articlesData = data.data.articles || []
-        setArticles(articlesData)
-        setFilteredArticles(articlesData)
+      if (hashnodeResponse.ok) {
+        const hashnodeData = await hashnodeResponse.json()
+        console.log("Hashnode API response:", hashnodeData)
         
-        // Set series (automatically fetched from API)
-        const seriesData = data.data.series || []
-        setSeries(seriesData)
-        
-        console.log(`✅ FRESH DATA LOADED WITH CACHE-BUST: ${articlesData.length} articles and ${seriesData.length} series`)
-        console.log("📚 Series loaded with FRESH cache-busted data:", seriesData.map((s: HashnodeSeries) => `"${s.name}" (${s.posts.totalDocuments} articles)`))
-        
-        // Check for your specific series
-        const foundProjects = seriesData.find((s: HashnodeSeries) => s.slug.includes('project') || s.name.toLowerCase().includes('project'))
-        const foundLinux = seriesData.find((s: HashnodeSeries) => s.slug.includes('linux') || s.name.toLowerCase().includes('linux'))
-        const foundDocker = seriesData.find((s: HashnodeSeries) => s.slug.includes('docker') || s.name.toLowerCase().includes('docker'))
-        
-        console.log("🔍 Series verification after cache-bust:")
-        console.log("   Projects found:", foundProjects ? `"${foundProjects.name}"` : 'NOT FOUND')
-        console.log("   Linux found:", foundLinux ? `"${foundLinux.name}"` : 'NOT FOUND')
-        console.log("   Docker found:", foundDocker ? `"${foundDocker.name}"` : 'NOT FOUND')
-        
-        // 🔧 HYDRATION FIX: Only update sync time after mounting
-        if (mounted) {
-          setLastSync(new Date().toISOString())
+        if (hashnodeData.success && hashnodeData.data) {
+          // Transform Hashnode data to match our Article interface
+          const transformedArticles = hashnodeData.data.articles.map((article: any) => ({
+            id: article.id,
+            title: article.title,
+            brief: article.brief,
+            slug: article.slug,
+            published_at: article.publishedAt,
+            read_time_minutes: article.readTimeInMinutes,
+            cover_image_url: article.coverImage?.url,
+            url: article.url,
+            series_name: article.series?.name,
+            series_slug: article.series?.slug,
+            tags: article.tags || []
+          }))
+          
+          // Transform series data
+          const transformedSeries = hashnodeData.data.series.map((s: any, index: number) => ({
+            id: `series-${s.slug}-${index}`, // Use deterministic ID
+            name: s.name,
+            slug: s.slug,
+            description: s.description,
+            total_posts: s.posts?.totalDocuments || 0
+          }))
+          
+          setArticles(transformedArticles)
+          setSeries(transformedSeries)
+          setLastSync(hashnodeData.metadata?.timestamp)
+          console.log(`✅ Loaded ${transformedArticles.length} articles from Hashnode (Total: ${hashnodeData.data.totalCount})`)
         }
-        
-        // Store request ID for debugging
-        setRequestId(data.data.metadata?.requestId || randomId)
-        
-        setApiResponse(data)
-        setNextRefresh(300) // Reset countdown to 5 minutes
-        
       } else {
-        throw new Error(data.error || 'Failed to fetch articles')
+        // Fallback to database API if available
+        try {
+          const [articlesResponse, seriesResponse] = await Promise.all([
+            fetch("/api/articles"), 
+            fetch("/api/series")
+          ])
+
+          if (articlesResponse.ok && seriesResponse.ok) {
+            const articlesData = await articlesResponse.json()
+            const seriesData = await seriesResponse.json()
+
+            setArticles(articlesData.articles || [])
+            setSeries(seriesData.series || [])
+            setLastSync(articlesData.lastSync)
+          } else {
+            console.error("❌ Failed to load data from both Hashnode API and database")
+          }
+        } catch (dbError) {
+          console.error("Database API not available:", dbError)
+        }
       }
     } catch (error) {
-      console.error("❌ Error loading FRESH articles with cache-bust:", error)
-      setApiError(error instanceof Error ? error.message : 'Unknown error')
+      console.error("Error loading data:", error)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  // 🔥 SUPER AGGRESSIVE: Manual refresh function with extra cache-busting
-  const handleManualRefresh = async () => {
-    console.log("🔥 SUPER AGGRESSIVE MANUAL REFRESH - bypassing ALL cache layers")
-    await loadArticlesData()
-  }
-
-  // Filter articles based on search, tags, and series
+  // Auto-refresh articles periodically and on visibility change
   useEffect(() => {
-    // 🔧 HYDRATION FIX: Don't run filtering until mounted
-    if (!mounted) return
+    if (!isClient) return // Only run on client side
 
-    let filtered = articles
-
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter(article => 
-        article.title.toLowerCase().includes(searchLower) ||
-        article.brief.toLowerCase().includes(searchLower) ||
-        article.tags.some(tag => tag.name.toLowerCase().includes(searchLower))
-      )
-    }
-
-    // Tags filter (AND logic - article must have ALL selected tags)
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(article =>
-        selectedTags.every(selectedTag =>
-          article.tags.some(tag => tag.name === selectedTag)
-        )
-      )
-    }
-
-    // Series filter
-    if (selectedSeries && selectedSeries !== 'all') {
-      filtered = filtered.filter(article => 
-        article.series?.slug === selectedSeries
-      )
-      console.log(`🔍 Filtering by series "${selectedSeries}": ${filtered.length} articles found`)
-    }
-
-    setFilteredArticles(filtered)
-    console.log(`🔍 Filtered ${filtered.length} articles from ${articles.length} total`)
-  }, [searchTerm, selectedTags, selectedSeries, articles, mounted])
-
-  // Get all unique tags from articles
-  const allTags = articles.reduce((tags: string[], article) => {
-    article.tags.forEach(tag => {
-      if (!tags.includes(tag.name)) {
-        tags.push(tag.name)
+    // Function to handle visibility change
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("🔄 Page became visible, refreshing articles...")
+        loadArticlesData()
       }
-    })
-    return tags
-  }, []).sort()
+    }
 
-  // Filter tags based on search
-  const filteredTags = allTags.filter(tag =>
-    tag.toLowerCase().includes(tagSearch.toLowerCase())
+    // Initial load
+    loadArticlesData()
+    setNextRefreshTime(new Date(Date.now() + refreshInterval))
+
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Set up automatic refresh (if enabled)
+    let interval: NodeJS.Timeout | null = null
+    
+    if (autoRefreshEnabled) {
+      interval = setInterval(() => {
+        console.log(`⏰ Auto-refreshing articles from Hashnode every ${currentConfig.refreshIntervalMinutes} minutes...`)
+        loadArticlesData()
+        setNextRefreshTime(new Date(Date.now() + refreshInterval)) // Reset timer
+      }, refreshInterval)
+    }
+
+    // Cleanup on component unmount
+    return () => {
+      if (interval) clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [autoRefreshEnabled, isClient])
+
+  const handleSync = async () => {
+    setSyncing(true)
+    try {
+      console.log("🔄 Manual refresh: Fetching latest articles from Hashnode...")
+      await loadArticlesData()
+      console.log("✅ Manual refresh completed!")
+    } catch (error) {
+      console.error("❌ Error during manual refresh:", error)
+      alert(`Error refreshing articles: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const fetchFromAPI = async () => {
+    setApiLoading(true)
+    setApiError(null)
+    try {
+      const response = await fetch(`/api/hashnode?username=${currentConfig.hashnodeUsername}&includeSeries=${currentConfig.includeSeriesData}&pageSize=${currentConfig.maxArticlesPerPage}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+      })
+      
+      const data = await response.json()
+      setApiResponse(data)
+      
+      if (!response.ok) {
+        setApiError(data.error || 'Failed to fetch from API')
+      } else {
+        console.log(`📊 API Response: ${data.data?.articles?.length || 0} articles fetched`)
+      }
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : 'Unknown error occurred')
+    } finally {
+      setApiLoading(false)
+    }
+  }
+
+  // Get all unique tags with counts
+  const allTags = Array.from(new Set(articles.flatMap((article) => article.tags.map((tag) => tag.name))))
+  const tagCounts = allTags.reduce((acc, tag) => {
+    acc[tag] = articles.filter(article => 
+      article.tags.some(articleTag => articleTag.name === tag)
+    ).length
+    return acc
+  }, {} as Record<string, number>)
+
+  // Filter articles
+  const filteredArticles = articles.filter((article) => {
+    const matchesSearch =
+      article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (article.brief && article.brief.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesTags = selectedTags.length === 0 || selectedTags.some(selectedTag => 
+      article.tags.some((tag) => tag.name === selectedTag)
+    )
+    const matchesSeries = !selectedSeries || article.series_name === selectedSeries
+    return matchesSearch && matchesTags && matchesSeries
+  })
+
+  // Filter tags based on search term
+  const filteredTags = allTags.filter(tag => 
+    tag.toLowerCase().includes(tagSearchTerm.toLowerCase())
   )
 
   // Handle tag selection
   const handleTagToggle = (tagName: string) => {
-    setSelectedTags(prev =>
+    setSelectedTags(prev => 
       prev.includes(tagName)
         ? prev.filter(tag => tag !== tagName)
         : [...prev, tagName]
     )
   }
 
-  // Remove tag from selection
-  const removeTag = (tagName: string) => {
-    setSelectedTags(prev => prev.filter(tag => tag !== tagName))
+  const clearAllTags = () => {
+    setSelectedTags([])
   }
 
-  // 🔧 HYDRATION FIX: Format date safely (client-side only)
-  const formatDate = (dateString: string) => {
-    if (!mounted) return ""
-    return new Date(dateString).toLocaleDateString()
-  }
-
-  // 🔧 HYDRATION FIX: Format time safely (client-side only)
-  const formatTime = (dateString: string) => {
-    if (!mounted) return ""
-    return new Date(dateString).toLocaleTimeString()
-  }
-
-  // 🔧 HYDRATION FIX: Don't render anything until mounted (prevents hydration mismatch)
-  if (!mounted) {
+  if (loading) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-4xl font-bold mb-2">Articles</h1>
-          <p className="text-muted-foreground mb-8">Loading articles from my blog...</p>
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-32 bg-muted rounded-lg"></div>
-            ))}
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2 text-primary">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="font-mono">Loading articles from database...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Articles</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Zap className="w-3 h-3 text-yellow-500" />
-                <span>Live from Hashnode (Cache-Busted)</span>
-              </div>
-              <span>•</span>
-              <span>{articles.length} articles</span>
-              {series.length > 0 && (
-                <>
-                  <span>•</span>
-                  <span>{series.length} series</span>
-                </>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-4xl font-bold text-primary">$ cat articles/</h1>
+              {/* Development-only controls */}
+              {isClient && showDevControls && (
+                <div className="flex gap-2">
+                  <Button onClick={fetchFromAPI} disabled={apiLoading} variant="outline" size="sm" className="bg-transparent">
+                    {apiLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Code className="h-4 w-4 mr-2" />}
+                    Fetch API
+                  </Button>
+                  <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm" className="bg-transparent">
+                    {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    Sync DB
+                  </Button>
+                </div>
               )}
             </div>
-            {!isProduction && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {lastSync && `Last synced: ${formatTime(lastSync)}`}
-                {nextRefresh > 0 && ` • Next refresh: ${Math.floor(nextRefresh / 60)}:${(nextRefresh % 60).toString().padStart(2, '0')}`}
-                {requestId && ` • ID: ${requestId.slice(-6)}`}
-              </div>
-            )}
-            
-            {/* Debug info for series */}
-            {!isProduction && (
-              <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded border">
-                <div className="font-medium">🔥 CACHE-BUSTED Series Debug Info ({series.length} found):</div>
-                {series.length === 0 ? (
-                  <div className="ml-2 text-red-600">❌ NO SERIES FOUND - Check API response!</div>
-                ) : (
-                  series.map((s, index) => (
-                    <div key={s.id} className="ml-2">
-                      {index + 1}. "{s.name}" (slug: "{s.slug}", articles: {s.posts.totalDocuments})
+            <p className="text-muted-foreground text-lg">
+              Technical articles, tutorials, and insights from my development journey
+            </p>
+          </div>
+
+          <Tabs defaultValue="articles" className="w-full">
+            <TabsList className={`grid w-full ${isClient && showDevControls ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <TabsTrigger value="articles" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                Articles View
+              </TabsTrigger>
+              {/* API Response tab only in development */}
+              {isClient && showDevControls && (
+                <TabsTrigger value="api" className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  API Response
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="articles" className="mt-6">
+              {articles.length > 0 && (
+                <div className="text-sm text-muted-foreground mb-6 space-y-1 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        Live: {articles.length} articles from Hashnode
+                      </p>
+                      {isClient && lastSync && <p>Last updated: {new Date(lastSync).toLocaleString()}</p>}
+                      {/* Development-only detailed info */}
+                      {isClient && showRefreshTimer && autoRefreshEnabled && nextRefreshTime && (
+                        <p className="text-xs">Next auto-refresh: {nextRefreshTime.toLocaleTimeString()}</p>
+                      )}
+                      {/* Production-friendly message */}
+                      {isClient && !showDevControls && (
+                        <p className="text-xs">Articles automatically sync with your Hashnode blog every {currentConfig.refreshIntervalMinutes} minutes</p>
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              onClick={handleManualRefresh}
-              disabled={isLoading}
-              size="sm"
-              variant="outline"
-              className="bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
-            >
-              <Zap className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : 'text-yellow-600'}`} />
-              Force Fresh
-            </Button>
-          </div>
-        </div>
+                    {/* Development-only toggle */}
+                    {isClient && showAutoRefreshToggle && (
+                      <button
+                        onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                        className="text-xs px-2 py-1 rounded border border-primary/20 hover:bg-primary/10 transition-colors"
+                      >
+                        Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
-        {/* Series loading warning */}
-        {series.length === 0 && !isLoading && !apiError && articles.length > 0 && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600" />
-            <span className="text-sm text-red-800">
-              ❌ No series found! Expected: Projects, Linux, Docker. Try the "Force Fresh" button.
-            </span>
-          </div>
-        )}
-
-        <Tabs defaultValue="articles" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="articles">Articles ({filteredArticles.length})</TabsTrigger>
-            {!isProduction && (
-              <TabsTrigger value="api">API Response</TabsTrigger>
-            )}
-          </TabsList>
-
-          <TabsContent value="articles" className="space-y-6">
-            {/* Search and Filters */}
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          {articles.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">
+                No articles found. Make sure to update the HASHNODE_USERNAME in the code with your actual Hashnode
+                username.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Current username: <code className="bg-muted px-2 py-1 rounded">maroayman</code>
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Search and Filters */}
+              <div className="mb-8 space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search articles..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 bg-background border-primary/20"
                   />
                 </div>
 
-                {/* Series Filter */}
-                <Select value={selectedSeries} onValueChange={setSelectedSeries}>
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder={series.length > 0 ? "All series" : "No series found"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All series ({articles.length})</SelectItem>
-                    {series.length === 0 ? (
-                      <SelectItem value="no-series" disabled className="text-red-500">
-                        ❌ No series found - Force refresh
-                      </SelectItem>
-                    ) : (
-                      series.map((s) => (
-                        <SelectItem key={s.id} value={s.slug}>
-                          📚 {s.name} ({s.posts.totalDocuments})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-
-                {/* Tags Filter */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full sm:w-auto">
-                      <Filter className="w-4 h-4 mr-2" />
-                      {selectedTags.length === 0 ? 'Filter by tags' : `${selectedTags.length} tags selected`}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80" align="end">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Filter by tags</h4>
-                        {selectedTags.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedTags([])}
-                          >
-                            Clear all
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <Input
-                        placeholder="Search tags..."
-                        value={tagSearch}
-                        onChange={(e) => setTagSearch(e.target.value)}
-                      />
-                      
-                      <div className="max-h-48 overflow-y-auto space-y-2">
-                        {filteredTags.map((tag) => {
-                          const articleCount = articles.filter(article =>
-                            article.tags.some(t => t.name === tag)
-                          ).length
-                          
-                          return (
-                            <div key={tag} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={tag}
-                                checked={selectedTags.includes(tag)}
-                                onCheckedChange={() => handleTagToggle(tag)}
-                              />
-                              <label
-                                htmlFor={tag}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
-                              >
-                                {tag} ({articleCount})
-                              </label>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Selected Tags Display */}
-              {selectedTags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedTags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <button
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:text-destructive"
+                <div className="flex items-center gap-4">
+                  {/* Tag Filter with Multi-Select */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="bg-transparent border-primary/20 justify-start"
                       >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Results Summary */}
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-              <Zap className="w-3 h-3 text-yellow-500" />
-              {isLoading ? (
-                "Loading fresh data with cache-busting..."
-              ) : (
-                `Showing ${filteredArticles.length} of ${articles.length} articles (cache-busted)`
-              )}
-              {(searchTerm || selectedTags.length > 0 || selectedSeries) && (
-                <span> with current filters</span>
-              )}
-              {selectedSeries && selectedSeries !== 'all' && (
-                <span> in series "{series.find(s => s.slug === selectedSeries)?.name || selectedSeries}"</span>
-              )}
-            </div>
-
-            {/* Error Display */}
-            {apiError && (
-              <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
-                <p className="font-medium">Error loading articles:</p>
-                <p className="text-sm">{apiError}</p>
-                <Button onClick={handleManualRefresh} variant="outline" size="sm" className="mt-2">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Try Force Refresh
-                </Button>
-              </div>
-            )}
-
-            {/* Articles Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {isLoading ? (
-                // Loading skeletons
-                Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardHeader>
-                      <div className="h-4 bg-muted rounded w-3/4"></div>
-                      <div className="h-3 bg-muted rounded w-full"></div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="h-3 bg-muted rounded"></div>
-                        <div className="h-3 bg-muted rounded w-2/3"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : filteredArticles.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">
-                    {articles.length === 0 ? 'No articles found.' : 'No articles match your current filters.'}
-                  </p>
-                  {(selectedTags.length > 0 || searchTerm || selectedSeries) && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchTerm("")
-                        setSelectedTags([])
-                        setSelectedSeries("")
-                      }}
-                      className="mt-4"
-                    >
-                      Clear all filters
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                filteredArticles.map((article) => (
-                  <Card key={article.id} className="hover:shadow-lg transition-shadow">
-                    {article.coverImage && (
-                      <div className="aspect-video overflow-hidden rounded-t-lg">
-                        <img
-                          src={article.coverImage.url}
-                          alt={article.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <CardHeader>
-                      <CardTitle className="line-clamp-2">
-                        <a
-                          href={article.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-primary transition-colors"
-                        >
-                          {article.title}
-                        </a>
-                      </CardTitle>
-                      <CardDescription className="line-clamp-3">
-                        {article.brief}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>{formatDate(article.publishedAt)}</span>
-                          <span>{article.readTimeInMinutes} min read</span>
-                        </div>
-                        
-                        {article.series && (
-                          <Badge variant="outline" className="text-xs">
-                            📚 {article.series.name}
-                          </Badge>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-1">
-                          {article.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag.id} variant="secondary" className="text-xs">
-                              {tag.name}
-                            </Badge>
-                          ))}
-                          {article.tags.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{article.tags.length - 3}
-                            </Badge>
-                          )}
+                        <Filter className="h-4 w-4 mr-2" />
+                        {selectedTags.length === 0 
+                          ? "Filter by tags" 
+                          : `${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''} selected`
+                        }
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0" align="start">
+                      <div className="p-4 border-b">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                          <Input
+                            placeholder="Search tags..."
+                            value={tagSearchTerm}
+                            onChange={(e) => setTagSearchTerm(e.target.value)}
+                            className="pl-10 h-8"
+                          />
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </TabsContent>
-
-          {!isProduction && (
-            <TabsContent value="api" className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-yellow-500" />
-                    API Response Data (Cache-Busted)
-                  </h3>
-                  <Button onClick={handleManualRefresh} disabled={isLoading} size="sm">
-                    <Zap className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    Force Fresh Fetch
-                  </Button>
-                </div>
-
-                {apiResponse && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="text-2xl font-bold">{apiResponse.data?.articles?.length || 0}</div>
-                          <div className="text-sm text-muted-foreground">Articles</div>
-                        </CardContent>
-                      </Card>
-                      <Card className={apiResponse.data?.series?.length === 0 ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
-                        <CardContent className="p-4">
-                          <div className="text-2xl font-bold">{apiResponse.data?.series?.length || 0}</div>
-                          <div className="text-sm text-muted-foreground">
-                            Series {apiResponse.data?.series?.length === 0 ? '❌' : '✅'}
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="text-2xl font-bold">{apiResponse.success ? '✅' : '❌'}</div>
-                          <div className="text-sm text-muted-foreground">Status</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="text-2xl font-bold">{apiResponse.timestamp ? formatTime(apiResponse.timestamp) : 'N/A'}</div>
-                          <div className="text-sm text-muted-foreground">Fetched</div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Cache-bust info */}
-                    {apiResponse.data?.metadata && (
-                      <Card className="border-yellow-200 bg-yellow-50">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-yellow-800">
-                            <Zap className="w-5 h-5" />
-                            Cache-Busting Info
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-sm space-y-1 text-yellow-800">
-                            <div>Request ID: {apiResponse.data.metadata.requestId}</div>
-                            <div>Cache Bust: {apiResponse.data.metadata.cacheBust}</div>
-                            <div>Fetched At: {formatTime(apiResponse.data.metadata.fetchedAt)}</div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Series Debug Section */}
-                    <Card className={apiResponse.data?.series?.length === 0 ? 'border-red-200' : 'border-green-200'}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          Series Details 
-                          {apiResponse.data?.series?.length === 0 ? '❌' : '✅'}
-                          <span className="text-sm font-normal">
-                            (Expected: Projects, Linux, Docker)
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {apiResponse.data?.series?.length === 0 ? (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded">
-                              <p className="text-red-800 font-medium">❌ No series found in cache-busted response!</p>
-                              <p className="text-red-600 text-sm mt-1">
-                                Even with aggressive cache-busting, no series were returned.
-                                This suggests an issue with the Hashnode GraphQL API or your account.
-                              </p>
-                            </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        <div className="p-2">
+                          {filteredTags.length === 0 ? (
+                            <p className="text-sm text-muted-foreground p-2">No tags found</p>
                           ) : (
-                            apiResponse.data.series.map((series: HashnodeSeries, index: number) => (
-                              <div key={series.id} className="p-2 bg-green-50 border border-green-200 rounded text-sm">
-                                <div className="font-medium">✅ {index + 1}. {series.name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  Slug: "{series.slug}" | Articles: {series.posts.totalDocuments}
-                                  {series.updatedAt && ` | Updated: ${formatDate(series.updatedAt)}`}
-                                </div>
+                            filteredTags.map((tag) => (
+                              <div key={tag} className="flex items-center space-x-2 p-2 hover:bg-accent rounded-sm">
+                                <Checkbox
+                                  id={`tag-${tag}`}
+                                  checked={selectedTags.includes(tag)}
+                                  onCheckedChange={() => handleTagToggle(tag)}
+                                />
+                                <label
+                                  htmlFor={`tag-${tag}`}
+                                  className="text-sm cursor-pointer flex-1 flex items-center justify-between"
+                                >
+                                  <span>#{tag}</span>
+                                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                                    {tagCounts[tag]}
+                                  </span>
+                                </label>
                               </div>
                             ))
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      {selectedTags.length > 0 && (
+                        <div className="p-3 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearAllTags}
+                            className="w-full"
+                          >
+                            Clear all filters
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Raw API Response</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <pre className="text-xs bg-muted p-4 rounded-md overflow-auto max-h-96 whitespace-pre-wrap">
-                          {JSON.stringify(apiResponse, null, 2)}
-                        </pre>
-                      </CardContent>
-                    </Card>
+                  {/* Selected Tags Display */}
+                  {selectedTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                          onClick={() => handleTagToggle(tag)}
+                        >
+                          #{tag}
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Series Section */}
+              {series.length > 0 && (
+                <div className="mb-12">
+                  <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
+                    <BookOpen className="h-6 w-6" />
+                    Article Series
+                  </h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {series.map((s, index) => (
+                      <Card
+                        key={index}
+                        className={`border-primary/20 hover:border-primary transition-all duration-300 cursor-pointer ${
+                          selectedSeries === s.name ? "border-primary bg-primary/5" : ""
+                        }`}
+                        onClick={() => setSelectedSeries(selectedSeries === s.name ? null : s.name)}
+                      >
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg flex items-center justify-between">
+                            {s.name}
+                            <Badge variant="secondary" className="text-xs w-fit mb-2">
+                              {s.total_posts} articles
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">
+                            {s.description || "A collection of related articles"}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Articles Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredArticles.map((article) => (
+                  <Card
+                    key={article.id}
+                    className="border-primary/20 hover:border-primary hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group cursor-pointer"
+                  >
+                    {article.cover_image_url && (
+                      <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                        <img
+                          src={article.cover_image_url || "/placeholder.svg"}
+                          alt={article.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    )}
+                    <CardHeader className="pb-3">
+                      {article.series_name && (
+                        <Badge variant="outline" className="text-xs w-fit mb-2">
+                          <Hash className="h-3 w-3 mr-1" />
+                          {article.series_name}
+                        </Badge>
+                      )}
+                      <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
+                        {article.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{article.brief}</p>
+
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(article.published_at)}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatReadTime(article.read_time_minutes || 5)}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {article.tags.slice(0, 3).map((tag, tagIndex) => (
+                          <Badge key={tagIndex} variant="secondary" className="text-xs">
+                            {tag.name}
+                          </Badge>
+                        ))}
+                        {article.tags.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{article.tags.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full group-hover:border-primary group-hover:text-primary transition-colors bg-transparent"
+                        asChild
+                      >
+                        <Link href={article.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Read on Hashnode
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Results Summary */}
+              {(searchTerm || selectedTags.length > 0 || selectedSeries) && (
+                <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      <span>Showing {filteredArticles.length} of {articles.length} articles</span>
+                      {searchTerm && <span> • Searching: "{searchTerm}"</span>}
+                      {selectedTags.length > 0 && <span> • Tags: {selectedTags.join(', ')}</span>}
+                      {selectedSeries && <span> • Series: {selectedSeries}</span>}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm("")
+                        setSelectedTags([])
+                        setSelectedSeries(null)
+                        setTagSearchTerm("")
+                      }}
+                      className="text-xs"
+                    >
+                      Clear all filters
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {filteredArticles.length === 0 && articles.length > 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground mb-2">No articles found matching your criteria.</p>
+                  <p className="text-sm text-muted-foreground">Try adjusting your filters or search terms.</p>
+                </div>
+              )}
+            </>
+          )}
+            </TabsContent>
+
+            {/* API Response tab - development only */}
+            {isClient && showDevControls && (
+              <TabsContent value="api" className="mt-6">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-primary">Hashnode API Response</h2>
+                    <Button 
+                      onClick={fetchFromAPI} 
+                      disabled={apiLoading} 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-transparent"
+                    >
+                      {apiLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                      )}
+                      Refresh API Data
+                    </Button>
+                  </div>
+
+                {apiError && (
+                  <div className="p-4 border border-red-500/20 bg-red-500/10 rounded-lg">
+                    <p className="text-red-500 font-mono text-sm">Error: {apiError}</p>
                   </div>
                 )}
 
-                {apiError && (
-                  <Card>
+                {apiLoading && (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span className="font-mono">Fetching from Hashnode API...</span>
+                    </div>
+                  </div>
+                )}
+
+                {apiResponse && !apiLoading && (
+                  <Card className="border-primary/20">
                     <CardHeader>
-                      <CardTitle className="text-destructive">API Error</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Code className="h-5 w-5" />
+                        API Response Data
+                      </CardTitle>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Status: {apiResponse.success ? 'Success' : 'Failed'}</p>
+                        <p>Timestamp: {apiResponse.metadata?.timestamp}</p>
+                        <p>Source: {apiResponse.metadata?.source}</p>
+                        <p>Username: {apiResponse.metadata?.username}</p>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-destructive">{apiError}</p>
+                      <div className="space-y-4">
+                        {apiResponse.success && apiResponse.data && (
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                                <BookOpen className="h-4 w-4" />
+                                Articles ({apiResponse.data.articles?.length || 0})
+                              </h3>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <p>Total Count: {apiResponse.data.totalCount}</p>
+                                <p>Page: {apiResponse.data.page}</p>
+                                <p>Page Size: {apiResponse.data.pageSize}</p>
+                                <p>Has Next: {apiResponse.data.hasNextPage ? 'Yes' : 'No'}</p>
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                                <Hash className="h-4 w-4" />
+                                Series ({apiResponse.data.series?.length || 0})
+                              </h3>
+                              {apiResponse.data.series?.map((series: any, index: number) => (
+                                <div key={index} className="text-sm text-muted-foreground">
+                                  <p>• {series.name} ({series.posts?.totalDocuments || 0} posts)</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-4">
+                          <h3 className="font-semibold mb-2">Raw JSON Response:</h3>
+                          <div className="bg-muted p-4 rounded-lg overflow-auto max-h-96">
+                            <pre className="text-xs font-mono">
+                              {JSON.stringify(apiResponse, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
+
+                {!apiResponse && !apiLoading && !apiError && (
+                  <div className="text-center py-12 border border-primary/20 rounded-lg bg-primary/5">
+                    <div className="flex flex-col items-center gap-4">
+                      <Database className="h-12 w-12 text-primary/50" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-primary mb-2">No API Data</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Click "Fetch API" to load data from the Hashnode API endpoint
+                        </p>
+                        <Button onClick={fetchFromAPI} variant="outline" className="bg-transparent">
+                          <Code className="h-4 w-4 mr-2" />
+                          Fetch API Data
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
-          )}
-        </Tabs>
+            )}
+          </Tabs>
+        </div>
       </div>
     </div>
   )

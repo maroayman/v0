@@ -1,7 +1,9 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "marwan-portfolio",
+  "version": "1.0.0",
   "private": true,
+  "description": "Marwan's Portfolio - Full-Stack Developer & Linux Enthusiast",
+  "author": "Marwan Ayman (maroayman)",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
