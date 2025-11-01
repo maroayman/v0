@@ -8,6 +8,25 @@ import Link from "next/link"
 
 const featuredProjects = [
   {
+    title: "Terraform AWS EC2 Infrastructure as Code",
+    description:
+      "A production-ready Terraform project that automates the deployment of secure EC2 instances on AWS with real-time monitoring dashboard",
+    technologies: ["Terraform", "AWS EC2", "Infrastructure as Code", "SSH", "DevOps", "AWS VPC", "Security Groups"],
+    features: [
+      "Automated EC2 instance provisioning with Terraform",
+      "SSH key generation and secure access configuration",
+      "Production-ready infrastructure with security best practices",
+      "Real-time monitoring dashboard for instance performance",
+      "5-minute quick deployment with terraform apply",
+      "Comprehensive documentation and deployment guides",
+    ],
+    github: "https://github.com/maroayman/depi-project-4",
+    demo: null,
+    status: "Completed",
+    duration: "1 week",
+    category: "Infrastructure as Code",
+  },
+  {
     title: "Flask Notes App - Production Deployment",
     description:
       "A complete end-to-end web application deployed on AWS EC2 with production-ready features and monitoring",
