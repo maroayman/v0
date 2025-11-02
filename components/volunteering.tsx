@@ -74,6 +74,44 @@ export function Volunteering() {
               </div>
             </CardContent>
           </Card>
+
+          <div className="mt-16 border-t pt-12">
+            <h3 className="text-2xl font-bold mb-8">Why Hire Me</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-muted-foreground">
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>Remote-ready in GMT+2, with proven experience in async workflows and global collaboration</p>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>Bilingual communicator fluent in English and Arabic, with cross-cultural leadership via DEPI</p>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>Cloud-native builder of full-stack apps using Node.js, MongoDB, Docker Compose, and NGINX</p>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>Infrastructure optimizer with hands-on deployments across AWS, Azure, GCP, and Huawei Cloud</p>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>
+                  DevOps specialist automating workflows, backups, and IAM policies using Terraform, Ansible, and Bash
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>
+                  Monitoring-first mindset, integrating Prometheus and Grafana for alerting and performance insights
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>
+                  Continuous learner, actively earning certifications and refining technical branding for global roles
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30">
+                <p>
+                  Portfolio-driven engineer, showcasing real deployments, CI/CD pipelines, and scalable architectures
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

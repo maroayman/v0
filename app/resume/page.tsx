@@ -249,6 +249,22 @@ export default function ResumePage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <a href="/resume.pdf" download className="inline-block">
+                <Button variant="default" size="sm" className="font-mono text-xs">
+                  Download Resume
+                </Button>
+              </a>
+              <Button
+                variant="default"
+                size="sm"
+                className="font-mono text-xs"
+                onClick={() => {
+                  const element = document.querySelector('[role="tablist"]')
+                  element?.scrollIntoView({ behavior: "smooth" })
+                }}
+              >
+                View Full Profile
+              </Button>
               <Button
                 variant={viewMode === "full" ? "default" : "outline"}
                 size="sm"

@@ -1,5 +1,7 @@
 "use client"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Download, ExternalLink } from "lucide-react"
 
 export function Hero() {
   const resumeUrl = `https://d12v6csynq0gvxlv.public.blob.vercel-storage.com/Marwan_Ayman.pdf?v=${Date.now()}`
@@ -87,8 +89,11 @@ export function Hero() {
               <span className="text-primary">$</span> ./download_resume.sh
             </div>
             <div className="pl-4">
-              <a href={resumeUrl} download="resume.pdf" className="text-accent hover:text-accent/80 underline text-sm">
-                resume.pdf
+              <a href={resumeUrl} download="resume.pdf">
+                <Button size="sm" variant="default" className="font-mono text-xs">
+                  <Download className="h-3 w-3 mr-1" />
+                  Download Resume
+                </Button>
               </a>
             </div>
 
@@ -96,12 +101,15 @@ export function Hero() {
               <span className="text-primary">$</span> cd projects/
             </div>
             <div className="pl-4">
-              <Link href="/projects" className="text-accent hover:text-accent/80 underline text-sm">
-                [VIEW] All Projects →
+              <Link href="/projects">
+                <Button size="sm" variant="default" className="font-mono text-xs">
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  View All Projects
+                </Button>
               </Link>
             </div>
 
-            <div className="pt-8">
+            <div className="pt-4">
               <span className="text-primary">$</span> <span className="terminal-cursor"></span>
             </div>
           </div>
