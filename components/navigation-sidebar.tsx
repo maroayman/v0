@@ -10,7 +10,6 @@ import { usePathname } from "next/navigation"
 const navigationItems = [
   { id: "about", label: "about" },
   { id: "skills", label: "skills" },
-  { id: "featured-projects", label: "featured_projects" },
   { id: "contact", label: "contact" },
 ]
 
