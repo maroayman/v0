@@ -95,7 +95,7 @@ export function Hero() {
               <span className="text-primary">$</span> ./download_resume.sh
             </div>
             <div className="pl-2 sm:pl-4">
-              <a href={resumeUrl} download="resume.pdf">
+              <a href={resumeUrl} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" variant="default" className="font-mono text-xs w-full sm:w-auto">
                   <Download className="h-3 w-3 mr-1" />
                   Download Resume
