@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Download, ExternalLink } from "lucide-react"
 
 export function Hero() {
-  const resumeUrl = `https://d12v6csynq0gvxlv.public.blob.vercel-storage.com/Marwan_Ayman.pdf?v=${Date.now()}`
+  const resumeUrl = `/resume.pdf?v=${Date.now()}`
 
   const scrollToAbout = () => {
     const aboutSection = document.getElementById("about")

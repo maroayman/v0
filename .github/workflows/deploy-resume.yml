@@ -3,7 +3,7 @@ name: Deploy Resume to Vercel
 on:
   push:
     branches: [main]
-    paths: ['resume.pdf']
+    paths: ['public/resume.pdf']
   workflow_dispatch:
 
 jobs:
