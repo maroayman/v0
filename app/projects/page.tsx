@@ -8,6 +8,28 @@ import Link from "next/link"
 
 const personalProjects = [
   {
+    title: "GitOps CI/CD Notes Application",
+    description:
+      "A complete 3-tier notes application with GitOps CI/CD pipeline using GitHub Actions, Terraform, Ansible, Helm, and ArgoCD on AWS EKS",
+    technologies: ["AWS EKS", "Terraform", "ArgoCD", "Helm", "Ansible", "GitHub Actions", "Docker", "Flask", "MySQL", "Nginx", "Prometheus"],
+    features: [
+      "Complete GitOps workflow with 4 separate pipelines (Infrastructure, Application, Deployment, GitOps)",
+      "Infrastructure as Code with Terraform for EKS cluster provisioning",
+      "Automated Docker image builds and ECR registry management",
+      "ArgoCD for continuous deployment and GitOps monitoring",
+      "3-tier architecture: Nginx reverse proxy, Flask API, MySQL database",
+      "Persistent storage with AWS EBS CSI driver for database",
+      "Prometheus metrics and health check endpoints",
+      "REST API with full CRUD operations for notes management",
+      "Comprehensive documentation and architecture diagrams",
+    ],
+    github: "https://github.com/maroayman/depi-notes-app-gitops",
+    demo: null,
+    status: "Completed",
+    duration: "3 weeks",
+    category: "DevOps & GitOps",
+  },
+  {
     title: "AWS Auto Scaling Web Application",
     description:
       "A highly available, scalable web application infrastructure on AWS with ALB, Auto Scaling Group, and secure multi-AZ network architecture",
