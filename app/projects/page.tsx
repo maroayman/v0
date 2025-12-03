@@ -5,7 +5,7 @@ import { Github, ExternalLink, ArrowLeft, Clock } from "lucide-react"
 
 const personalProjects = [
   {
-    title: "GitOps CI/CD Notes Application",
+    title: "3-Tier GitOps App on EKS",
     description:
       "A complete 3-tier notes application with GitOps CI/CD pipeline using GitHub Actions, Terraform, Ansible, Helm, and ArgoCD on AWS EKS",
     technologies: ["AWS EKS", "Terraform", "ArgoCD", "Helm", "Ansible", "GitHub Actions", "Docker", "Flask", "MySQL"],
@@ -21,7 +21,7 @@ const personalProjects = [
     duration: "3 weeks",
   },
   {
-    title: "AWS Auto Scaling Web Application",
+    title: "Highly Available AWS Infrastructure",
     description:
       "A highly available, scalable web application infrastructure on AWS with ALB, Auto Scaling Group, and secure multi-AZ network architecture",
     technologies: ["Terraform", "AWS", "ALB", "Auto Scaling", "VPC", "NAT Gateway", "S3"],
@@ -37,7 +37,7 @@ const personalProjects = [
     duration: "2 weeks",
   },
   {
-    title: "Terraform AWS EC2 Infrastructure",
+    title: "Terraform EC2 Monitoring Stack",
     description:
       "A production-ready Terraform project that automates the deployment of secure EC2 instances on AWS with real-time monitoring",
     technologies: ["Terraform", "AWS EC2", "VPC", "Security Groups"],
@@ -52,7 +52,7 @@ const personalProjects = [
     duration: "1 week",
   },
   {
-    title: "Flask Notes App - Production Deployment",
+    title: "Dockerized Flask Production Stack",
     description:
       "A complete end-to-end web application deployed on AWS EC2 with production-ready features and monitoring",
     technologies: ["Flask", "MySQL", "Docker", "AWS EC2", "Nginx", "Prometheus"],
@@ -68,21 +68,7 @@ const personalProjects = [
     duration: "2 weeks",
   },
   {
-    title: "Python Note Web App",
-    description: "A full-stack web application for note-taking deployed on AWS infrastructure with EBS backup",
-    technologies: ["Python", "Flask", "MariaDB", "AWS EC2", "AWS EBS"],
-    features: [
-      "Deployed on AWS EC2 with scalable infrastructure",
-      "Backup system using AWS EBS mounted volumes",
-      "MariaDB database integration through SQLAlchemy ORM",
-      "Full CRUD operations for note management",
-    ],
-    github: "https://github.com/maroayman/depi-project-1/",
-    demo: null,
-    duration: "1 week",
-  },
-  {
-    title: "Go Application Web Note App",
+    title: "Ansible-Managed Go Web App",
     description: "A Go-based web application for note management with Ansible automation and scheduled tasks",
     technologies: ["Go", "SQLite", "Ansible", "Cron"],
     features: [
@@ -95,11 +81,25 @@ const personalProjects = [
     demo: null,
     duration: "1.5 weeks",
   },
+  {
+    title: "Flask App with Persistent AWS Storage",
+    description: "A full-stack web application for note-taking deployed on AWS infrastructure with EBS backup",
+    technologies: ["Python", "Flask", "MariaDB", "AWS EC2", "AWS EBS"],
+    features: [
+      "Deployed on AWS EC2 with scalable infrastructure",
+      "Backup system using AWS EBS mounted volumes",
+      "MariaDB database integration through SQLAlchemy ORM",
+      "Full CRUD operations for note management",
+    ],
+    github: "https://github.com/maroayman/depi-project-1/",
+    demo: null,
+    duration: "1 week",
+  },
 ]
 
 const academicProjects = [
   {
-    title: "Platformer Game",
+    title: "2D Platformer Game",
     description: "A 2D platformer game built with Unity and C#, featuring collaborative development and asset integration",
     technologies: ["Unity", "C#"],
     features: [
@@ -112,7 +112,7 @@ const academicProjects = [
     demo: null,
   },
   {
-    title: "Football Club Dashboard",
+    title: "Football Analytics Dashboard",
     description: "Interactive data visualization dashboard built with Microsoft Power BI for football analytics",
     technologies: ["Power BI", "Data Analysis"],
     features: [
@@ -124,7 +124,7 @@ const academicProjects = [
     demo: null,
   },
   {
-    title: "Linux Terminal Project",
+    title: "Linux File Link Utility",
     description: "A C-based terminal utility for creating and managing file links in Linux environments",
     technologies: ["C", "Linux"],
     features: [
@@ -136,7 +136,7 @@ const academicProjects = [
     demo: null,
   },
   {
-    title: "File Encryption and Decryption",
+    title: "File Encryption Tool",
     description: "A Python-based security application implementing encryption and decryption techniques",
     technologies: ["Python", "Cryptography"],
     features: [
@@ -160,7 +160,7 @@ const academicProjects = [
     demo: null,
   },
   {
-    title: "E-Commerce Website",
+    title: "E-Commerce Platform",
     description: "Graduation project - A comprehensive e-commerce platform with YouTube integration for product recommendations",
     technologies: ["Angular", "ASP.NET", "SQL Server", "Bootstrap"],
     features: [
