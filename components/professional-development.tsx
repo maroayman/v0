@@ -9,7 +9,7 @@ export function ProfessionalDevelopment() {
       company: "Digital Egypt Pioneers Initiative",
       position: "DevOps Trainee",
       startDate: "Jun 2025",
-      endDate: "Present",
+      endDate: "Dec 2025",
       location: "Cairo, Egypt",
       description: "Undergoing structured training in DevOps, cloud computing, and Linux administration.",
       highlights: [

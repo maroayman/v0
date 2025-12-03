@@ -8,7 +8,7 @@ const organizations = [
   {
     name: "Digital Egypt Pioneers Initiative",
     role: "Group Leader Volunteer",
-    period: "Jun 2025 – Present",
+    period: "Jun 2025 – Dec 2025",
     location: "Cairo, Egypt",
     type: "Volunteer Leadership",
     description: "Leading and mentoring a peer group in the Cloud and DevOps professional training program.",
@@ -24,7 +24,7 @@ const organizations = [
   {
     name: "Digital Egypt Pioneers Initiative",
     role: "Participant - Cloud and DevOps Track",
-    period: "Jun 2025 – Present",
+    period: "Jun 2025 – Dec 2025",
     location: "Cairo, Egypt",
     type: "Professional Training",
     description: "Intensive professional training program focused on cloud technologies and DevOps practices.",
