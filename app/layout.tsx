@@ -92,6 +92,44 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        url: siteUrl,
+        name: "Marwan Ayman - DevOps & Cloud Engineer",
+        description: "Portfolio of Marwan Ayman, a DevOps & Cloud Engineer passionate about building scalable infrastructure and automating deployments.",
+        publisher: { "@id": `${siteUrl}/#person` },
+      },
+      {
+        "@type": "Person",
+        "@id": `${siteUrl}/#person`,
+        name: "Marwan Ayman Shawky",
+        url: siteUrl,
+        jobTitle: "DevOps & Cloud Engineer",
+        email: "marwanayman.shawky@gmail.com",
+        sameAs: [
+          "https://github.com/maroayman",
+          "https://gitlab.com/maroayman",
+          "https://linkedin.com/in/maroayman",
+          "https://hashnode.com/@maroayman",
+        ],
+        knowsAbout: [
+          "DevOps",
+          "Cloud Engineering",
+          "Kubernetes",
+          "Docker",
+          "Terraform",
+          "AWS",
+          "CI/CD",
+          "Infrastructure as Code",
+        ],
+      },
+    ],
+  }
+
   return (
     <html lang="en" suppressHydrationWarning className={jetbrainsMono.variable}>
       <head>
@@ -99,6 +137,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
+        
+        {/* Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         
         {/* Preconnect to external resources for faster loading */}
         <link rel="preconnect" href="https://github.com" />

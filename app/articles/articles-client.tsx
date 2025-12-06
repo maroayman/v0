@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -15,8 +15,15 @@ import {
   X,
   Tag,
   Filter,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
 } from "lucide-react"
 import Link from "next/link"
+
+const ARTICLES_PER_PAGE = 10
+
+type SortOption = "date-desc" | "date-asc" | "read-time-asc" | "read-time-desc"
 
 interface Article {
   id: string
@@ -55,6 +62,8 @@ export default function ArticlesClient({
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagSearchTerm, setTagSearchTerm] = useState("")
   const [selectedSeries, setSelectedSeries] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [sortBy, setSortBy] = useState<SortOption>("date-desc")
 
   const articles = initialArticles
   const series = initialSeries
@@ -71,17 +80,41 @@ export default function ArticlesClient({
     {} as Record<string, number>,
   )
 
-  // Filter articles
-  const filteredArticles = articles.filter((article) => {
-    const matchesSearch =
-      article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (article.brief && article.brief.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesTags =
-      selectedTags.length === 0 ||
-      selectedTags.some((selectedTag) => article.tags.some((tag) => tag.name === selectedTag))
-    const matchesSeries = !selectedSeries || article.series_name === selectedSeries
-    return matchesSearch && matchesTags && matchesSeries
-  })
+  // Filter and sort articles
+  const filteredArticles = useMemo(() => {
+    const filtered = articles.filter((article) => {
+      const matchesSearch =
+        article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (article.brief && article.brief.toLowerCase().includes(searchTerm.toLowerCase()))
+      const matchesTags =
+        selectedTags.length === 0 ||
+        selectedTags.some((selectedTag) => article.tags.some((tag) => tag.name === selectedTag))
+      const matchesSeries = !selectedSeries || article.series_name === selectedSeries
+      return matchesSearch && matchesTags && matchesSeries
+    })
+
+    // Sort articles
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "date-desc":
+          return new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
+        case "date-asc":
+          return new Date(a.published_at).getTime() - new Date(b.published_at).getTime()
+        case "read-time-asc":
+          return (a.read_time_minutes || 0) - (b.read_time_minutes || 0)
+        case "read-time-desc":
+          return (b.read_time_minutes || 0) - (a.read_time_minutes || 0)
+        default:
+          return 0
+      }
+    })
+  }, [articles, searchTerm, selectedTags, selectedSeries, sortBy])
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredArticles.length / ARTICLES_PER_PAGE)
+  const startIndex = (currentPage - 1) * ARTICLES_PER_PAGE
+  const endIndex = startIndex + ARTICLES_PER_PAGE
+  const paginatedArticles = filteredArticles.slice(startIndex, endIndex)
 
   // Filter tags based on search term
   const filteredTags = allTags.filter((tag) => tag.toLowerCase().includes(tagSearchTerm.toLowerCase()))
@@ -89,17 +122,61 @@ export default function ArticlesClient({
   // Handle tag selection
   const handleTagToggle = (tagName: string) => {
     setSelectedTags((prev) => (prev.includes(tagName) ? prev.filter((tag) => tag !== tagName) : [...prev, tagName]))
+    setCurrentPage(1)
   }
 
   const clearAllTags = () => {
     setSelectedTags([])
+    setCurrentPage(1)
   }
 
   const clearAllFilters = () => {
     setSelectedTags([])
     setSelectedSeries(null)
     setSearchTerm("")
+    setCurrentPage(1)
   }
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    setCurrentPage(1)
+  }
+
+  const handleSeriesChange = (seriesName: string) => {
+    setSelectedSeries(selectedSeries === seriesName ? null : seriesName)
+    setCurrentPage(1)
+  }
+
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  // Keyboard navigation for pagination
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      if (e.key === "ArrowLeft" && currentPage > 1) {
+        goToPage(currentPage - 1)
+      } else if (e.key === "ArrowRight" && currentPage < totalPages) {
+        goToPage(currentPage + 1)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [currentPage, totalPages, goToPage])
+
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: "date-desc", label: "Newest first" },
+    { value: "date-asc", label: "Oldest first" },
+    { value: "read-time-asc", label: "Shortest read" },
+    { value: "read-time-desc", label: "Longest read" },
+  ]
 
   const hasActiveFilters = selectedTags.length > 0 || selectedSeries || searchTerm
 
@@ -127,7 +204,7 @@ export default function ArticlesClient({
                 <Input
                   placeholder="Search articles..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -194,7 +271,7 @@ export default function ArticlesClient({
                             className={`flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer transition-colors ${
                               selectedSeries === s.name ? "bg-secondary" : "hover:bg-muted"
                             }`}
-                            onClick={() => setSelectedSeries(selectedSeries === s.name ? null : s.name)}
+                            onClick={() => handleSeriesChange(s.name)}
                           >
                             <span>{s.name}</span>
                             <span className="text-xs text-muted-foreground">{s.total_posts}</span>
@@ -204,6 +281,31 @@ export default function ArticlesClient({
                     </PopoverContent>
                   </Popover>
                 )}
+
+                {/* Sort Options */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8">
+                      <ArrowUpDown className="h-3 w-3 mr-1.5" />
+                      Sort
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-44 p-2" align="start">
+                    <div className="space-y-1">
+                      {sortOptions.map((option) => (
+                        <div
+                          key={option.value}
+                          className={`px-2 py-1.5 rounded text-sm cursor-pointer transition-colors ${
+                            sortBy === option.value ? "bg-secondary" : "hover:bg-muted"
+                          }`}
+                          onClick={() => setSortBy(option.value)}
+                        >
+                          {option.label}
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
                 {/* Clear filters */}
                 {hasActiveFilters && (
@@ -247,7 +349,7 @@ export default function ArticlesClient({
 
             {/* Articles List */}
             <div className="space-y-8">
-              {filteredArticles.map((article) => (
+              {paginatedArticles.map((article) => (
                 <article key={article.id} className="group">
                   <Link 
                     href={article.url}
@@ -286,16 +388,89 @@ export default function ArticlesClient({
               ))}
             </div>
 
-            {/* Results count */}
-            <p className="mt-8 pt-6 border-t text-sm text-muted-foreground">
-              {filteredArticles.length} of {articles.length} articles
-              {selectedSeries && ` in "${selectedSeries}"`}
-            </p>
-
             {filteredArticles.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">No articles match your criteria.</p>
               </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-10 pt-6 border-t">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1}–{Math.min(endIndex, filteredArticles.length)} of {filteredArticles.length} articles
+                  </p>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show first, last, current, and adjacent pages
+                        const showPage = 
+                          page === 1 || 
+                          page === totalPages || 
+                          Math.abs(page - currentPage) <= 1
+                        
+                        const showEllipsis = 
+                          (page === 2 && currentPage > 3) ||
+                          (page === totalPages - 1 && currentPage < totalPages - 2)
+                        
+                        if (showEllipsis && !showPage) {
+                          return (
+                            <span key={page} className="px-2 text-muted-foreground">
+                              …
+                            </span>
+                          )
+                        }
+                        
+                        if (!showPage) return null
+                        
+                        return (
+                          <Button
+                            key={page}
+                            variant={page === currentPage ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => goToPage(page)}
+                            className="w-9 px-0"
+                          >
+                            {page}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="gap-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results count when single page */}
+            {totalPages <= 1 && filteredArticles.length > 0 && (
+              <p className="mt-8 pt-6 border-t text-sm text-muted-foreground">
+                {filteredArticles.length} of {articles.length} articles
+                {selectedSeries && ` in "${selectedSeries}"`}
+              </p>
             )}
           </>
         )}
