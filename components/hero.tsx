@@ -18,13 +18,15 @@ export function Hero() {
         </p>
         
         <div className="flex flex-wrap gap-4 text-sm mb-6">
-          <Link 
-            href="mailto:marwanayman.shawky@gmail.com" 
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <div className="flex items-center gap-1.5 text-muted-foreground">
             <Mail className="h-4 w-4" />
-            marwanayman.shawky@gmail.com
-          </Link>
+            <Link 
+              href="mailto:marwanayman.shawky@gmail.com" 
+              className="text-blue-500 hover:text-blue-600 transition-colors"
+            >
+              marwanayman.shawky@gmail.com
+            </Link>
+          </div>
         </div>
         
         <div className="flex items-center justify-between">
