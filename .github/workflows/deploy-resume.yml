@@ -41,6 +41,18 @@ jobs:
       (github.event_name == 'workflow_dispatch' && (inputs.target == 'cloudflare' || inputs.target == 'both' || (inputs.target == 'auto' && github.ref == 'refs/heads/cloudflare-pages')))
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: cloudflare-pages
+          fetch-depth: 0
+
+      - name: Merge main branch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main -m "Merge main for deployment" || true
+          git push || true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -59,4 +71,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy out --project-name=maroayman
+          command: pages deploy out --project-name=maroayman --branch=main --commit-dirty=true
+
