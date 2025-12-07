@@ -3,6 +3,9 @@ export const config = {
   // Development/Debug Settings
   showDebugControls: false, // Set to true to show API buttons and debug info
 
+  // Feature Toggles
+  showBlogSection: false, // Set to true to show the blog/articles section
+
   // Auto-refresh Settings
   refreshIntervalMinutes: 10, // How often to auto-refresh articles
   maxArticlesPerPage: 50, // Maximum articles to fetch per request
@@ -23,6 +26,7 @@ export const environments = {
     showDebugControls: true,
     showRefreshTimer: true,
     showAutoRefreshToggle: true,
+    showBlogSection: false, // Set to true to enable blog
   },
 
   production: {
@@ -30,6 +34,7 @@ export const environments = {
     showDebugControls: false,
     showRefreshTimer: false,
     showAutoRefreshToggle: false,
+    showBlogSection: false, // Set to true to enable blog
   },
 }
 
