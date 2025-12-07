@@ -1,0 +1,3 @@
+# Redirect /articles to home when blog is disabled
+/articles /  307
+/articles/ / 307
