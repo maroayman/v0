@@ -7,7 +7,7 @@ import { HashnodeIcon } from "@/components/icons/hashnode-icon"
 
 const GitLabIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z"/>
+    <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
   </svg>
 )
 
@@ -17,10 +17,14 @@ export function Contact() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setStatus("sending")
-    
+
     const form = e.currentTarget
     const formData = new FormData(form)
-    
+
+    // Create abort controller for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
     try {
       const response = await fetch("https://formsubmit.co/ajax/marwanayman.shawky@gmail.com", {
         method: "POST",
@@ -28,17 +32,27 @@ export function Contact() {
         headers: {
           Accept: "application/json",
         },
+        signal: controller.signal,
       })
-      
+
+      clearTimeout(timeoutId)
+
       if (response.ok) {
         setStatus("sent")
         form.reset()
         setTimeout(() => setStatus("idle"), 3000)
       } else {
+        console.error("Form submission failed:", response.status, response.statusText)
         setStatus("error")
         setTimeout(() => setStatus("idle"), 3000)
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(timeoutId)
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.error("Form submission timed out")
+      } else {
+        console.error("Form submission error:", err)
+      }
       setStatus("error")
       setTimeout(() => setStatus("idle"), 3000)
     }
@@ -48,9 +62,9 @@ export function Contact() {
     <section id="contact" className="py-12 border-t">
       <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
         <h2 className="text-2xl font-bold mb-6">Get in Touch</h2>
-        
+
         <p className="text-muted-foreground mb-6 leading-relaxed">
-          I'm always open to discussing new opportunities, interesting projects, or just having a 
+          I'm always open to discussing new opportunities, interesting projects, or just having a
           conversation about DevOps and cloud technologies.
         </p>
 
@@ -75,28 +89,28 @@ export function Contact() {
           </div>
 
           <div className="flex gap-4">
-            <Link 
+            <Link
               href="https://github.com/maroayman"
               target="_blank"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <Github className="h-5 w-5" />
             </Link>
-            <Link 
+            <Link
               href="https://gitlab.com/maroayman"
               target="_blank"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <GitLabIcon className="h-5 w-5" />
             </Link>
-            <Link 
+            <Link
               href="https://linkedin.com/in/maroayman"
               target="_blank"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <Linkedin className="h-5 w-5" />
             </Link>
-            <Link 
+            <Link
               href="https://hashnode.com/@maroayman"
               target="_blank"
               className="text-muted-foreground hover:text-foreground transition-colors"
@@ -111,7 +125,7 @@ export function Contact() {
           <input type="hidden" name="_subject" value="New Portfolio Contact Message" />
           <input type="hidden" name="_captcha" value="false" />
           <input type="hidden" name="_template" value="table" />
-          
+
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-1">
               Name

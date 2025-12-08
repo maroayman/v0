@@ -1,28 +1,22 @@
-name: Deploy Resume
+name: Deploy Site to Both Platforms
 
 on:
-  push:
-    branches: [main, cloudflare-pages]
-    paths: ['public/resume.pdf']
   workflow_dispatch:
     inputs:
       target:
         description: 'Deployment target'
         required: true
-        default: 'auto'
+        default: 'both'
         type: choice
         options:
-          - auto
+          - both
           - vercel
           - cloudflare
-          - both
 
 jobs:
   deploy-vercel:
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.target == 'vercel' || inputs.target == 'both' || (inputs.target == 'auto' && github.ref == 'refs/heads/main')))
+    if: inputs.target == 'vercel' || inputs.target == 'both'
     steps:
       - uses: actions/checkout@v4
       
@@ -36,23 +30,20 @@ jobs:
 
   deploy-cloudflare:
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/cloudflare-pages') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.target == 'cloudflare' || inputs.target == 'both' || (inputs.target == 'auto' && github.ref == 'refs/heads/cloudflare-pages')))
+    if: inputs.target == 'cloudflare' || inputs.target == 'both'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: cloudflare-pages
           fetch-depth: 0
 
-      - name: Merge main branch
-        if: github.event_name == 'workflow_dispatch'
+      - name: Merge main into cloudflare-pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git merge origin/main -m "Merge main for deployment" || true
-          git push || true
+          git merge origin/main -m "Merge main for deployment"
+          git push
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -72,4 +63,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy out --project-name=maroayman --branch=main --commit-dirty=true
-

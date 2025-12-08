@@ -115,7 +115,7 @@ const academicProjects = [
   {
     title: "Football Analytics Dashboard",
     description: "Interactive data visualization dashboard built with Microsoft Power BI for football analytics",
-    technologies: ["Power BI", "Data Analysis"],
+    technologies: ["Power BI", "Excel", "Data Analysis"],
     features: [
       "Comprehensive data visualization from Kaggle dataset",
       "Team history including goals scored and conceded",
@@ -151,7 +151,7 @@ const academicProjects = [
   {
     title: "Learning Management System",
     description: "A Java-based LMS with role-based access control for educational institutions",
-    technologies: ["Java", "OOP"],
+    technologies: ["Java", "OOP", "JDBC", "SQLite"],
     features: [
       "Teachers can log in and update student grades",
       "Students have read-only access to records",
@@ -199,9 +199,9 @@ export default function ProjectsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
                     <h3 className="font-medium text-lg">
                       {project.github ? (
-                        <Link 
-                          href={project.github} 
-                          target="_blank" 
+                        <Link
+                          href={project.github}
+                          target="_blank"
                           className="inline-flex items-center gap-1.5 hover:underline"
                         >
                           {project.title}
@@ -219,8 +219,8 @@ export default function ProjectsPage() {
                         </span>
                       )}
                       {project.demo && (
-                        <Link 
-                          href={project.demo} 
+                        <Link
+                          href={project.demo}
                           target="_blank"
                           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                         >
@@ -230,22 +230,22 @@ export default function ProjectsPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
                     {project.description}
                   </p>
-                  
+
                   <div className="flex flex-wrap gap-1.5 mb-4">
                     {project.technologies.map((tech, techIndex) => (
-                      <span 
-                        key={techIndex} 
+                      <span
+                        key={techIndex}
                         className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded"
                       >
                         {tech}
                       </span>
                     ))}
                   </div>
-                  
+
                   <ul className="space-y-1.5 text-sm text-muted-foreground pl-4">
                     {project.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="relative before:content-['•'] before:absolute before:-left-3 before:text-muted-foreground/50">
@@ -267,9 +267,9 @@ export default function ProjectsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
                     <h3 className="font-medium text-lg">
                       {project.github ? (
-                        <Link 
-                          href={project.github} 
-                          target="_blank" 
+                        <Link
+                          href={project.github}
+                          target="_blank"
                           className="inline-flex items-center gap-1.5 hover:underline"
                         >
                           {project.title}
@@ -280,8 +280,8 @@ export default function ProjectsPage() {
                       )}
                     </h3>
                     {project.demo && (
-                      <Link 
-                        href={project.demo} 
+                      <Link
+                        href={project.demo}
                         target="_blank"
                         className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                       >
@@ -290,22 +290,22 @@ export default function ProjectsPage() {
                       </Link>
                     )}
                   </div>
-                  
+
                   <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
                     {project.description}
                   </p>
-                  
+
                   <div className="flex flex-wrap gap-1.5 mb-4">
                     {project.technologies.map((tech, techIndex) => (
-                      <span 
-                        key={techIndex} 
+                      <span
+                        key={techIndex}
                         className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded"
                       >
                         {tech}
                       </span>
                     ))}
                   </div>
-                  
+
                   <ul className="space-y-1.5 text-sm text-muted-foreground pl-4">
                     {project.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="relative before:content-['•'] before:absolute before:-left-3 before:text-muted-foreground/50">
