@@ -30,15 +30,15 @@ export function ProfessionalDevelopment() {
       <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold">Work Experience</h2>
-          <Link 
-            href="/experience" 
+          <Link
+            href="/experience"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
           >
             View all
             <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-        
+
         <div className="space-y-8">
           {workExperience.map((job) => (
             <div key={job.id}>
