@@ -44,6 +44,12 @@ export function NavigationSidebar() {
             >
               Projects
             </Link>
+            <Link
+              href="/certifications"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Certifications
+            </Link>
             {currentConfig.showBlogSection && (
               <Link
                 href="/articles"

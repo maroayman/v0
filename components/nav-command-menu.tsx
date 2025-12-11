@@ -15,6 +15,7 @@ const menuItems = [
     // Separate pages
     { label: "Experience", href: "/experience", type: "page" },
     { label: "Projects", href: "/projects", type: "page" },
+    { label: "Certifications", href: "/certifications", type: "page" },
 ]
 
 // Debounce hook for search input
@@ -173,8 +174,8 @@ export function NavCommandMenu() {
                                                 key={item.href}
                                                 onClick={() => handleNavigate(item.href)}
                                                 className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm text-left transition-colors ${index === selectedIndex
-                                                        ? "bg-muted"
-                                                        : "hover:bg-muted/50"
+                                                    ? "bg-muted"
+                                                    : "hover:bg-muted/50"
                                                     }`}
                                                 onMouseEnter={() => setSelectedIndex(index)}
                                             >
