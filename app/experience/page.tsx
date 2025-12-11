@@ -1,8 +1,13 @@
+"use client"
+
 import Link from "next/link"
 import { NavigationSidebar } from "@/components/navigation-sidebar"
 import { workExperience } from "@/lib/work-experience"
+import { PaginatedList } from "@/components/ui/paginated-list"
 
 export default function ExperiencePage() {
+  const experiences = workExperience.filter(job => !job.isTemplate)
+
   return (
     <div className="min-h-screen bg-background">
       <NavigationSidebar />
@@ -14,8 +19,13 @@ export default function ExperiencePage() {
             My professional journey in DevOps and cloud engineering.
           </p>
 
-          <div className="space-y-10">
-            {workExperience.filter(job => !job.isTemplate).map((job) => (
+          <PaginatedList
+            items={experiences}
+            itemsPerPage={5}
+            threshold={20}
+            className="space-y-10"
+          >
+            {(job) => (
               <article key={job.id}>
                 {/* Company Header */}
                 <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-1">
@@ -80,10 +90,11 @@ export default function ExperiencePage() {
                   ))}
                 </div>
               </article>
-            ))}
-          </div>
+            )}
+          </PaginatedList>
         </div>
       </main>
     </div>
   )
 }
+

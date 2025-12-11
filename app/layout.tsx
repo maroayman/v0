@@ -4,8 +4,9 @@ import { JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ScrollToTop } from "@/components/scroll-to-top"
+import { NavCommandMenu } from "@/components/nav-command-menu"
 
-const jetbrainsMono = JetBrains_Mono({ 
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap", // Prevents FOIT (Flash of Invisible Text)
   preload: true,
@@ -84,7 +85,7 @@ export const metadata: Metadata = {
   verification: {
     // google: "your-google-verification-code", // Add if you have Google Search Console
   },
-    generator: 'v0.app'
+  generator: 'v0.app'
 }
 
 export default function RootLayout({
@@ -137,13 +138,13 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
-        
+
         {/* Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        
+
         {/* Preconnect to external resources for faster loading */}
         <link rel="preconnect" href="https://github.com" />
         <link rel="preconnect" href="https://linkedin.com" />
@@ -156,6 +157,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {children}
           <ScrollToTop />
+          <NavCommandMenu />
         </ThemeProvider>
       </body>
     </html>
