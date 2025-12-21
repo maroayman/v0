@@ -30,16 +30,16 @@ export function Skills() {
     <section id="skills" className="py-12 border-t">
       <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
         <h2 className="text-2xl font-bold mb-8">Skills</h2>
-        
+
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6">
           {skillCategories.map((category) => (
             <div key={category.name}>
               <h3 className="font-medium text-sm text-foreground mb-2">{category.name}</h3>
               <div className="flex flex-wrap gap-1.5">
                 {category.skills.map((skill) => (
-                  <span 
-                    key={skill} 
-                    className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded"
+                  <span
+                    key={skill}
+                    className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded cursor-default"
                   >
                     {skill}
                   </span>

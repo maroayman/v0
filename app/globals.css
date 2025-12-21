@@ -25,7 +25,7 @@
     --input: 0 0% 90%;
     --ring: 221 83% 53%;
     --radius: 0.375rem;
-    
+
     /* Link color - classic blue */
     --link: 221 83% 45%;
   }
@@ -51,7 +51,7 @@
     --border: 0 0% 20%;
     --input: 0 0% 20%;
     --ring: 221 83% 53%;
-    
+
     /* Link color - lighter blue for dark mode */
     --link: 221 83% 65%;
   }
@@ -61,14 +61,19 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.7;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-semibold tracking-tight;
     line-height: 1.3;
   }
@@ -76,13 +81,14 @@
   a {
     color: hsl(var(--link));
   }
-  
+
   a:hover {
     @apply underline;
   }
 
   /* Prevent horizontal scroll */
-  html, body {
+  html,
+  body {
     overflow-x: hidden;
   }
 }
@@ -116,29 +122,86 @@ html {
 
 /* Performance optimizations */
 @layer utilities {
+
   /* Reduce layout shifts by reserving space for images */
   .aspect-video {
     aspect-ratio: 16 / 9;
   }
-  
+
   /* Hardware acceleration for animated elements */
   .will-change-transform {
     will-change: transform;
   }
-  
+
   /* Reduce motion for users who prefer it */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
   }
-  
+
   /* Content visibility for off-screen sections */
   .content-auto {
     content-visibility: auto;
     contain-intrinsic-size: 0 500px;
   }
+}
+
+/* Floating label styles */
+.floating-label-group {
+  position: relative;
+}
+
+.floating-label-group input,
+.floating-label-group textarea {
+  @apply pt-5;
+}
+
+.floating-label-group label {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  @apply text-muted-foreground text-sm transition-all duration-200 pointer-events-none;
+}
+
+.floating-label-group textarea~label {
+  top: 1.25rem;
+  transform: none;
+}
+
+.floating-label-group input:focus~label,
+.floating-label-group input:not(:placeholder-shown)~label,
+.floating-label-group textarea:focus~label,
+.floating-label-group textarea:not(:placeholder-shown)~label {
+  top: 0.35rem;
+  transform: none;
+  @apply text-xs text-primary;
+}
+
+/* Success checkmark animation */
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-checkmark {
+  animation: checkmark 0.4s ease-out forwards;
 }

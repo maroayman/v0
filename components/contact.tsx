@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Github, Linkedin, Mail, Phone, MapPin } from "lucide-react"
+import { Github, Linkedin, Mail, Phone, MapPin, Check } from "lucide-react"
 import { HashnodeIcon } from "@/components/icons/hashnode-icon"
 
 const GitLabIcon = ({ className }: { className?: string }) => (
@@ -69,7 +69,7 @@ export function Contact() {
       if (response.ok) {
         setStatus("sent")
         setFormValues({ name: "", email: "", message: "", honey: "" })
-        setTimeout(() => setStatus("idle"), 3000)
+        setTimeout(() => setStatus("idle"), 4000)
       } else {
         const bodyText = await response.text().catch(() => "")
         console.error("Form submission failed:", response.status, response.statusText, bodyText)
@@ -168,8 +168,13 @@ export function Contact() {
           <div
             role="status"
             aria-live="polite"
-            className={`text-sm ${status === "error" ? "text-red-600" : status === "sent" ? "text-green-600" : "text-muted-foreground"}`}
+            className={`text-sm flex items-center gap-2 ${status === "error" ? "text-red-600" : status === "sent" ? "text-green-600" : "text-muted-foreground"}`}
           >
+            {status === "sent" && (
+              <span className="inline-flex items-center justify-center w-5 h-5 bg-green-600 rounded-full animate-checkmark">
+                <Check className="h-3 w-3 text-white" />
+              </span>
+            )}
             {status === "sending"
               ? "Sending..."
               : status === "sent"
@@ -179,25 +184,24 @@ export function Contact() {
                   : "I usually respond within a day."}
           </div>
 
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">
-              Name
-            </label>
+          {/* Floating Label: Name */}
+          <div className="floating-label-group">
             <input
               type="text"
               id="name"
               name="name"
               required
               maxLength={80}
+              placeholder=" "
               value={formValues.name}
               onChange={(e) => setFormValues((v) => ({ ...v, name: e.target.value }))}
               className="w-full px-3 py-2 border rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <label htmlFor="name">Name</label>
           </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
-              Email
-            </label>
+
+          {/* Floating Label: Email */}
+          <div className="floating-label-group">
             <input
               type="email"
               id="email"
@@ -205,43 +209,59 @@ export function Contact() {
               required
               inputMode="email"
               autoComplete="email"
+              placeholder=" "
               value={formValues.email}
               onChange={(e) => setFormValues((v) => ({ ...v, email: e.target.value }))}
               className="w-full px-3 py-2 border rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <label htmlFor="email">Email</label>
           </div>
-          <div>
-            <label htmlFor="message" className="block text-sm font-medium mb-1">
-              Message
-            </label>
+
+          {/* Floating Label: Message with Character Count */}
+          <div className="floating-label-group">
             <textarea
               id="message"
               name="message"
               rows={4}
               required
               maxLength={2000}
+              placeholder=" "
               value={formValues.message}
               onChange={(e) => setFormValues((v) => ({ ...v, message: e.target.value }))}
               className="w-full px-3 py-2 border rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             />
+            <label htmlFor="message">Message</label>
+            <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
+              {formValues.message.length}/2000
+            </div>
           </div>
+
           <button
             type="submit"
             disabled={status === "sending" || !isValid}
-            className="px-4 py-2 bg-foreground text-background text-sm rounded-md hover:bg-foreground/90 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-foreground text-background text-sm rounded-md hover:bg-foreground/90 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            {status === "sending"
-              ? "Sending..."
-              : status === "sent"
-                ? "Sent!"
-                : status === "error"
-                  ? "Error - Try Again"
-                  : !isValid
-                    ? "Complete the form"
-                    : "Send Message"}
+            {status === "sending" ? (
+              <>
+                <span className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
+                Sending...
+              </>
+            ) : status === "sent" ? (
+              <>
+                <Check className="h-4 w-4" />
+                Sent!
+              </>
+            ) : status === "error" ? (
+              "Error - Try Again"
+            ) : !isValid ? (
+              "Complete the form"
+            ) : (
+              "Send Message"
+            )}
           </button>
         </form>
       </div>
     </section>
   )
 }
+
