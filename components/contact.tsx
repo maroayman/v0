@@ -55,7 +55,7 @@ export function Contact() {
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
     try {
-      const response = await fetch("https://submify.vercel.app/marwanayman.shawky@gmail.com", {
+      const response = await fetch("https://formsubmit.co/ajax/marwanayman.shawky@gmail.com", {
         method: "POST",
         body: formData,
         headers: {
@@ -151,7 +151,7 @@ export function Contact() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md" noValidate>
-          {/* Submify configuration */}
+          {/* Formsubmit.co configuration */}
           <input type="hidden" name="_subject" value="New Portfolio Contact Message" />
           <input type="hidden" name="_template" value="table" />
           <input
