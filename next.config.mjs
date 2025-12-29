@@ -89,6 +89,23 @@ const nextConfig = {
           },
         ],
       },
+      // Stale-while-revalidate for HTML pages (edge caching)
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'accept',
+            value: '(.*text/html.*)',
+          },
+        ],
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
     ]
   },
 

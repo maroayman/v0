@@ -12,7 +12,6 @@ function FeaturesList({ items }: { items: string[] }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const hasMore = items.length > INITIAL_VISIBLE
   const visibleItems = isExpanded ? items : items.slice(0, INITIAL_VISIBLE)
-  const remainingCount = items.length - INITIAL_VISIBLE
 
   return (
     <div>
@@ -37,7 +36,7 @@ function FeaturesList({ items }: { items: string[] }) {
           ) : (
             <>
               <ChevronDown className="w-3.5 h-3.5" />
-              Show {remainingCount} more
+              Show more
             </>
           )}
         </button>

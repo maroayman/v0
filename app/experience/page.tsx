@@ -13,7 +13,6 @@ function ResponsibilitiesList({ items }: { items: string[] }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const hasMore = items.length > INITIAL_VISIBLE
   const visibleItems = isExpanded ? items : items.slice(0, INITIAL_VISIBLE)
-  const remainingCount = items.length - INITIAL_VISIBLE
 
   return (
     <div className="mb-3">
@@ -38,7 +37,7 @@ function ResponsibilitiesList({ items }: { items: string[] }) {
           ) : (
             <>
               <ChevronDown className="w-3.5 h-3.5" />
-              Show {remainingCount} more
+              Show more
             </>
           )}
         </button>
@@ -80,46 +79,35 @@ export default function ExperiencePage() {
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{job.location}</p>
 
-                {/* Roles with Timeline - dots and line appear when multiple roles */}
-                <div className="relative">
+                {/* Roles */}
+                <div className="space-y-6">
                   {job.roles.map((role, roleIndex) => (
-                    <div key={roleIndex} className="relative pl-6 pb-6 last:pb-0">
-                      {/* Timeline line - only shows when multiple roles */}
-                      {job.roles.length > 1 && roleIndex < job.roles.length - 1 && (
-                        <div className="absolute left-[7px] top-3 bottom-0 w-0.5 bg-border" />
+                    <div
+                      key={roleIndex}
+                      className={roleIndex > 0 ? 'pt-6 border-t border-border' : ''}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-2">
+                        <h3 className="font-medium">{role.position}</h3>
+                        <span className="text-xs text-muted-foreground">{role.period}</span>
+                      </div>
+
+                      <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                        {role.description}
+                      </p>
+
+                      {role.responsibilities && (
+                        <ResponsibilitiesList items={role.responsibilities} />
                       )}
 
-                      {/* Timeline dot - only shows when multiple roles */}
-                      {job.roles.length > 1 && (
-                        <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-primary bg-background" />
-                      )}
-
-                      {/* Role Content */}
-                      <div>
-                        <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-2">
-                          <h3 className="font-medium">{role.position}</h3>
-                          <span className="text-xs text-muted-foreground">{role.period}</span>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                          {role.description}
-                        </p>
-
-                        {/* Responsibilities - collapsible bullet points */}
-                        {role.responsibilities && (
-                          <ResponsibilitiesList items={role.responsibilities} />
-                        )}
-
-                        <div className="flex flex-wrap gap-1.5">
-                          {role.technologies.map((tech, index) => (
-                            <span
-                              key={index}
-                              className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded"
-                            >
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {role.technologies.map((tech, index) => (
+                          <span
+                            key={index}
+                            className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded"
+                          >
+                            {tech}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   ))}
